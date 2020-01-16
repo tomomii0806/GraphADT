@@ -1,0 +1,274 @@
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.NoSuchElementException;
+
+public class Graph<Key, Value> implements ADT<Key, Value> {
+
+	
+	
+	
+	
+	private HashMap<Key, HashMap<Key, Integer>> adjList;	//Adjacent list with the weight of edges
+	private HashMap<Key, Value> listOfValues;				//Store the key and a mapped value to the key
+	private int size;
+	
+	
+	/// Dijkstra's short span ///
+	private ArrayList<Key> vertex; 	//Map key and index to compute shortest path
+	private int[] dist;				//Store distances of vertexes to get min distance
+	private boolean dsp[];			//Store vertexes which is included into Dijkstra's short span tree
+	
+	
+	public Graph() {
+		
+		adjList = new HashMap<>();
+		listOfValues = new HashMap<>();
+		size = 0;
+	}
+	
+	
+
+
+	@Override
+	public void addVertex(Key key, Value val) {
+		// TODO Auto-generated method stub
+		if (!hasVertex(key))
+		{
+			adjList.put(key, new HashMap());
+			listOfValues.put(key, val);
+			size++;
+		}
+		else
+		{
+			System.out.println("Duplicated key error. Cannot add the vertex to the graph.");
+		}
+	}
+
+
+	@Override
+	public void addEdges(Key from, Key to, int weight) {
+		// TODO Auto-generated method stub
+		if (!hasVertex(from) || !hasVertex(to))
+		{
+			throw new NoSuchElementException();
+		}
+		
+		adjList.get(from).put(to, weight);
+		adjList.get(to).put(from, weight);
+	}
+
+
+	@Override
+	public void removeVertex(Key key) {
+		// TODO Auto-generated method stub
+		if (!hasVertex(key))
+		{
+			throw new NoSuchElementException();
+		}
+		
+		listOfValues.remove(key);
+		HashMap mappedV = adjList.remove(key);
+		adjList.forEach((k,c)-> {if (mappedV.containsKey(k))
+			{ 
+				adjList.get(k).remove(key);
+			}
+			}
+		);
+		size--;
+	}
+
+
+	@Override
+	public void removeEdges(Key from, Key to) {
+		// TODO Auto-generated method stub
+		if (!hasVertex(from) || !hasVertex(to))
+		{
+			throw new NoSuchElementException();
+		}
+		
+		adjList.get(from).remove(to);
+		adjList.get(to).remove(from);
+	}
+
+	@Override
+	public boolean hasVertex(Key key) {
+		// TODO Auto-generated method stub
+						
+		return adjList.containsKey(key);
+	}
+
+	@Override
+	public Value getVertexValue(Key key) {
+		// TODO Auto-generated method stub
+		return listOfValues.get(key);
+	}
+
+
+	@Override
+	public boolean setVertexValue(Key key, Value newVal) {
+		// TODO Auto-generated method stub
+		if (listOfValues.containsKey(key))
+		{
+			listOfValues.replace(key, newVal);
+			return true;
+		}
+		else
+		{
+			return false;
+		}	
+		
+	}
+
+
+	@Override
+	public int getEdgeValue(Key from, Key to) {
+		// TODO Auto-generated method stub
+		if (!hasVertex(from) || !hasVertex(to))
+		{
+			throw new NoSuchElementException();
+		}
+		if (from == to)
+		{
+			return 0;
+		}
+		return adjList.get(from).get(to);
+	}
+
+
+	@Override
+	public boolean setEdgeValue(Key from, Key to, int weight) {
+		// TODO Auto-generated method stub
+		if (!hasVertex(from) || !hasVertex(to) || from == to)
+		{
+			return false;
+		}
+		else
+		{
+			adjList.get(from).replace(to, weight);
+			adjList.get(to).replace(from, weight);
+			
+			return true;
+		}
+		
+	}
+
+
+	@Override
+	public ArrayList<Key> getNeighbors(Key key) {
+		// TODO Auto-generated method stub
+		ArrayList<Key> list = new ArrayList<>();
+		adjList.get(key).forEach((k,v) -> list.add(k));
+		
+		return list;
+	}
+
+
+	@Override
+	public boolean hasAdjacent(Key from, Key to) {
+		// TODO Auto-generated method stub
+		if (adjList.containsKey(from))
+		{
+			if (adjList.get(from).containsKey(to))
+			{
+				return true;
+			}
+			else
+			{
+				return false;
+			}
+		}
+		else 
+		{
+			return false;
+		}
+		
+	}
+	
+	@Override
+	public void printGraph() {
+		// TODO Auto-generated method stub
+		
+		adjList.forEach((k,v) -> {
+			v.forEach((i,j) -> System.out.print(k+ " -> " + i + "  Weight: " + j + "		"));
+		System.out.println();});
+	}
+
+	@Override
+	public int size() {
+		// TODO Auto-generated method stub
+		return this.size;
+	}	
+	
+	
+///////////////////////////// Dijkstra's short span ///////////////////////////////
+	@Override
+	public void getShortestPath(Key start) {
+		
+		
+		dist = new int[size];
+		dsp = new boolean[size];
+		
+		//initialize dist[] and dsp[]
+		for (int i = 0; i < size; i++)
+		{
+			dist[i] = Integer.MAX_VALUE;
+			dsp[i] = false;
+		}
+		
+		ArrayList<Key> vertex = new ArrayList<>(adjList.keySet());
+		int indexOfStart = -1;
+		for (int j = 0; j < vertex.size(); j++)
+		{
+			if (vertex.get(j).equals(start))
+			{
+				indexOfStart = j;
+			}
+		}
+		
+		dist[indexOfStart] = 0;	// Distance of source vertex from itself is always 0 
+		
+		
+		for (int u = 0; u < size; u++)
+		{
+			int min = getMinDistance();
+			
+			dsp[min] = true;
+			
+			
+			for (int v = 0; v < size; v++)
+			{
+				if (!dsp[v] && hasAdjacent(vertex.get(u), vertex.get(v)) && dist[u] != Integer.MAX_VALUE && dist[u] + getEdgeValue(vertex.get(u), vertex.get(v)) < dist[v])
+				{
+					dist[v] = dist[u] + getEdgeValue(vertex.get(u), vertex.get(v));
+				}
+			}
+		}
+		printDijkstrasShortestPath(vertex, dist, start);
+	}
+	
+	private int getMinDistance() 
+	{
+		int minEdge = Integer.MAX_VALUE;
+		int minIndex = -1;
+		for (int i = 0; i < dist.length; i++)
+		{
+			if (dist[i] < minEdge && dsp[i] == false)
+			{
+				minEdge = dist[i];	//Find an edge with minimum weight
+				minIndex = i;
+			}
+		}
+		return minIndex;		//Return index of the min edge
+	}
+	
+	public void printDijkstrasShortestPath(ArrayList<Key> vertex, int[] dist, Key start) {
+		// TODO Auto-generated method stub
+		System.out.println("Vertex : Distance from " + start);
+		for (int i = 0; i < size; i++)
+		{
+			System.out.println(vertex.get(i) + " : " + dist[i]);
+		}
+	}
+}
